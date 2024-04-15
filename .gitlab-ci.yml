@@ -46,6 +46,7 @@ build-toolchains:
     - mkdir /toolchain
     - for i in $LIST; do dpkg -x /chroot/var/cache/apt/archives/${i}_*.deb /toolchain; done
     - cd /toolchain
-    - tar c * | zstd -9 -o /toolchain_${SOURCE_DEB_ARCHITECTURE}_${TARGET_DEB_ARCHITECTURE}.tar.zst
-    - 'curl --header "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file /toolchain_${SOURCE_DEB_ARCHITECTURE}_${TARGET_DEB_ARCHITECTURE}.tar.zst
-      "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/${CI_JOB_NAME}/latest/toolchain_${SOURCE_DEB_ARCHITECTURE}_${TARGET_DEB_ARCHITECTURE}.tar.zst"'
+    - FILE="/toolchain_${DEBIAN_VERSION}_${SOURCE_DEB_ARCHITECTURE}_${TARGET_DEB_ARCHITECTURE}.tar.zst"
+    - tar c * | zstd -9 -o ${FILE}
+    - 'curl --header "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file ${FILE}
+      "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/${CI_JOB_NAME}/latest${FILE}"'
