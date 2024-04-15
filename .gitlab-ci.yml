@@ -25,6 +25,7 @@ build-toolchains:
     name: debian:${DEBIAN_VERSION}
   script:
     - set -x
+    - dpkg --add-architecture ${SOURCE_DEB_ARCHITECTURE}
     - apt-get update
     - apt-get -y install debootstrap zstd tar dpkg-dev curl
     - bkup=$(dpkg-architecture -q DEB_TARGET_ARCH)
@@ -46,7 +47,8 @@ build-toolchains:
     - mkdir /toolchain
     - for i in $LIST; do dpkg -x /chroot/var/cache/apt/archives/${i}_*.deb /toolchain; done
     - cd /toolchain
-    - FILE="/toolchain_${DEBIAN_VERSION}_${SOURCE_DEB_ARCHITECTURE}_${TARGET_DEB_ARCHITECTURE}.tar.zst"
+    - NAME="toolchain_${DEBIAN_VERSION}_${SOURCE_DEB_ARCHITECTURE}_${TARGET_DEB_ARCHITECTURE}"
+    - FILE="/$NAME.tar.zst"
     - tar c * | zstd -9 -o ${FILE}
     - 'curl --header "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file ${FILE}
-      "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/${CI_JOB_NAME}/latest${FILE}"'
+      "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/$NAME/latest/${NAME}.tar.zst"'
