@@ -1,0 +1,49 @@
+# Set up HTTP proxies from code.siemens.com
+variables:
+  http_proxy: "$CODE_PROXY"
+  https_proxy: "$CODE_PROXY"
+  no_proxy: "${CODE_NO_PROXY},rtf.siemens.net,tools.mobility.siemens.com"
+  proxy_to_pass: "$CODE_PROXY"
+  no_proxy_to_pass: "${CODE_NO_PROXY},rtf.siemens.net,tools.mobility.siemens.com"
+
+build-toolchains:
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main" && $CI_PIPELINE_SOURCE == "push" 
+    - if: $CI_COMMIT_BRANCH != "main" && $CI_PIPELINE_SOURCE == "push" && $GITLAB_USER_LOGIN !~ /merge.meister.automation/
+      when: manual
+  parallel:
+    matrix:
+      - TARGET_DEB_ARCHITECTURE:
+        - amd64  # x86_64
+        SOURCE_DEB_ARCHITECTURE:
+        - arm64  # aarch64
+        - amd64  # x86_64
+        DEBIAN_VERSION:
+        - bullseye
+        - bookworm
+  image:
+    name: debian:${DEBIAN_VERSION}
+  script:
+    - apt-get update
+    - apt-get -y install debootstrap zstd tar
+    - bkup=$(dpkg-architecture -q DEB_TARGET_ARCH)
+    # get GNU architectures for both source and destination
+    - dpkg-architecture -A $TARGET_DEB_ARCHITECTURE
+    - TARGET_GNU_ARCHITECTURE=$(dpkg-architecture -q DEB_TARGET_GNU_CPU | tr '_' '-')
+    - dpkg-architecture -A $SOURCE_DEB_ARCHITECTURE
+    - SOURCE_GNU_ARCHITECTURE=$(dpkg-architecture -q DEB_TARGET_GNU_CPU | tr '_' '-')
+    - dpkg-architecture -A $bkup
+    # different handling if source and target are the same
+    - if [ $TARGET_ARCHITECTURE = $SOURCE_ARCHITECTURE ]; then
+        debootstrap --download-only --variant minbase --include g++ --arch $SOURCE_DEB_ARCHITECTURE ${DEBIAN_VERSION} /chroot http://deb.debian.org/debian;
+        LIST=$(apt-cache depends --recurse g++ -o APT::Cache::ShowOnlyFirstOr=true --no-recommends --no-suggests --no-breaks --no-conflicts --no-replaces --no-enhances | grep -v " ");
+      else
+        debootstrap --download-only --variant minbase --include g++-${TARGET_GNU_ARCHITECTURE}-linux-gnu --arch $SOURCE_DEB_ARCHITECTURE ${DEBIAN_VERSION} /chroot http://deb.debian.org/debian/;
+        LIST=$(apt-cache depends --recurse g++-${TARGET_GNU_ARCHITECTURE}-linux-gnu -o APT::Cache::ShowOnlyFirstOr=true --no-recommends --no-suggests --no-breaks --no-conflicts --no-replaces --no-enhances | grep -v " ");
+      fi
+    - mkdir /toolchain
+    - for i in $LIST; do dpkg -x /chroot/var/cache/apt/archives/$i /toolchain; done
+    - cd /toolchain
+    - tar c * | zstd -9 -o /toolchain_${SOURCE_DEB_ARCHITECTURE}_${TARGET_DEB_ARCHITECTURE}.tar.zst
+    - 'curl --header "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file /toolchain_${SOURCE_DEB_ARCHITECTURE}_${TARGET_DEB_ARCHITECTURE}.tar.zst
+      "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/${CI_JOB_NAME}/latest/toolchain_${SOURCE_DEB_ARCHITECTURE}_${TARGET_DEB_ARCHITECTURE}.tar.zst"'
