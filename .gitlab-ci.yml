@@ -25,7 +25,7 @@ build-toolchains:
     name: debian:${DEBIAN_VERSION}
   script:
     - apt-get update
-    - apt-get -y install debootstrap zstd tar
+    - apt-get -y install debootstrap zstd tar dpkg-dev
     - bkup=$(dpkg-architecture -q DEB_TARGET_ARCH)
     # get GNU architectures for both source and destination
     - dpkg-architecture -A $TARGET_DEB_ARCHITECTURE
