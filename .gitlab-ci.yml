@@ -24,6 +24,7 @@ build-toolchains:
   image:
     name: debian:${DEBIAN_VERSION}
   script:
+    - set -x
     - apt-get update
     - apt-get -y install debootstrap zstd tar dpkg-dev
     - bkup=$(dpkg-architecture -q DEB_TARGET_ARCH)
@@ -33,6 +34,7 @@ build-toolchains:
     - dpkg-architecture -A $SOURCE_DEB_ARCHITECTURE
     - SOURCE_GNU_ARCHITECTURE=$(dpkg-architecture -q DEB_TARGET_GNU_CPU | tr '_' '-')
     - dpkg-architecture -A $bkup
+    - env
     # different handling if source and target are the same
     - if [ $TARGET_ARCHITECTURE = $SOURCE_ARCHITECTURE ]; then
         debootstrap --download-only --variant minbase --include g++ --arch $SOURCE_DEB_ARCHITECTURE ${DEBIAN_VERSION} /chroot http://deb.debian.org/debian;
