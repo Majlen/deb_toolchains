@@ -26,7 +26,7 @@ build-toolchains:
   script:
     - set -x
     - apt-get update
-    - apt-get -y install debootstrap zstd tar dpkg-dev
+    - apt-get -y install debootstrap zstd tar dpkg-dev curl
     - bkup=$(dpkg-architecture -q DEB_TARGET_ARCH)
     # get GNU architectures for both source and destination
     - dpkg-architecture -A $TARGET_DEB_ARCHITECTURE
@@ -41,7 +41,7 @@ build-toolchains:
         LIST=$(apt-cache depends --recurse g++ -o APT::Cache::ShowOnlyFirstOr=true --no-recommends --no-suggests --no-breaks --no-conflicts --no-replaces --no-enhances | grep -v " ");
       else
         debootstrap --download-only --variant minbase --include g++-${TARGET_GNU_ARCHITECTURE}-linux-gnu --arch $SOURCE_DEB_ARCHITECTURE ${DEBIAN_VERSION} /chroot http://deb.debian.org/debian/;
-        LIST=$(apt-cache depends --recurse g++-${TARGET_GNU_ARCHITECTURE}-linux-gnu -o APT::Cache::ShowOnlyFirstOr=true --no-recommends --no-suggests --no-breaks --no-conflicts --no-replaces --no-enhances | grep -v " ");
+        LIST=$(apt-cache depends --recurse g++-${TARGET_GNU_ARCHITECTURE}-linux-gnu -o APT::Cache::ShowOnlyFirstOr=true --no-recommends --no-suggests --no-breaks --no-conflicts --no-replaces --no-enhances | grep -v " " | grep -v "<");
       fi
     - mkdir /toolchain
     - for i in $LIST; do dpkg -x /chroot/var/cache/apt/archives/${i}_*.deb /toolchain; done
