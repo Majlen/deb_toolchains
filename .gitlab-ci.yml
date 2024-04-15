@@ -45,7 +45,7 @@ build-toolchains:
         LIST=$(apt-cache depends --recurse g++-${TARGET_GNU_ARCHITECTURE}-linux-gnu -o APT::Cache::ShowOnlyFirstOr=true --no-recommends --no-suggests --no-breaks --no-conflicts --no-replaces --no-enhances | grep -v ' ' | grep -v '<');
       fi
     - mkdir /toolchain
-    - for i in $LIST; do dpkg -x /chroot/var/cache/apt/archives/${i}_*.deb /toolchain; done
+    - for i in $LIST; do pkg=$(echo $i | sed s/:${SOURCE_DEB_ARCHITECTURE}\$//); dpkg -x /chroot/var/cache/apt/archives/${pkg}_*.deb /toolchain; done
     - cd /toolchain
     - NAME="toolchain_${DEBIAN_VERSION}_${SOURCE_DEB_ARCHITECTURE}_${TARGET_DEB_ARCHITECTURE}"
     - FILE="/$NAME.tar.zst"
