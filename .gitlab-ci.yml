@@ -42,7 +42,7 @@ build-toolchains:
         LIST=$(apt-cache depends --recurse g++-${TARGET_GNU_ARCHITECTURE}-linux-gnu -o APT::Cache::ShowOnlyFirstOr=true --no-recommends --no-suggests --no-breaks --no-conflicts --no-replaces --no-enhances | grep -v " ");
       fi
     - mkdir /toolchain
-    - for i in $LIST; do dpkg -x /chroot/var/cache/apt/archives/$i /toolchain; done
+    - for i in $LIST; do dpkg -x /chroot/var/cache/apt/archives/$i_*.deb /toolchain; done
     - cd /toolchain
     - tar c * | zstd -9 -o /toolchain_${SOURCE_DEB_ARCHITECTURE}_${TARGET_DEB_ARCHITECTURE}.tar.zst
     - 'curl --header "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file /toolchain_${SOURCE_DEB_ARCHITECTURE}_${TARGET_DEB_ARCHITECTURE}.tar.zst
