@@ -38,13 +38,16 @@ build-toolchains:
     - env
     # different handling if source and target are the same
     - if [ $TARGET_DEB_ARCHITECTURE = $SOURCE_DEB_ARCHITECTURE ]; then
-        debootstrap --download-only --variant minbase --include g++ --arch $SOURCE_DEB_ARCHITECTURE ${DEBIAN_VERSION} /chroot http://deb.debian.org/debian;
-        LIST=$(apt-cache depends --recurse g++ -o APT::Cache::ShowOnlyFirstOr=true --no-recommends --no-suggests --no-breaks --no-conflicts --no-replaces --no-enhances | grep -v ' ' | sed -e 's/<//' -e 's/>//');
+        debootstrap --download-only --variant minbase --include g++,lib6-dev --arch $SOURCE_DEB_ARCHITECTURE ${DEBIAN_VERSION} /chroot http://deb.debian.org/debian;
+        GPP_PKGS=$(apt-cache depends --recurse g++ -o APT::Cache::ShowOnlyFirstOr=true --no-recommends --no-suggests --no-breaks --no-conflicts --no-replaces --no-enhances | grep -v ' ' | sed -e 's/<//' -e 's/>//');
+        LIBC_DEV_PKGS=$(apt-cache depends --recurse libc6-dev -o APT::Cache::ShowOnlyFirstOr=true --no-recommends --no-suggests --no-breaks --no-conflicts --no-replaces --no-enhances | grep -v ' ' | sed -e 's/<//' -e 's/>//');
       else
-        debootstrap --download-only --variant minbase --include g++-${TARGET_GNU_ARCHITECTURE}-linux-gnu --arch $SOURCE_DEB_ARCHITECTURE ${DEBIAN_VERSION} /chroot http://deb.debian.org/debian/;
-        LIST=$(apt-cache depends --recurse g++-${TARGET_GNU_ARCHITECTURE}-linux-gnu -o APT::Cache::ShowOnlyFirstOr=true --no-recommends --no-suggests --no-breaks --no-conflicts --no-replaces --no-enhances | grep -v ' ' | sed -e 's/<//' -e 's/>//');
+        debootstrap --download-only --variant minbase --include g++-${TARGET_GNU_ARCHITECTURE}-linux-gnu,libc6-dev-${TARGET_DEB_ARCHITECTURE}-cross --arch $SOURCE_DEB_ARCHITECTURE ${DEBIAN_VERSION} /chroot http://deb.debian.org/debian/;
+        GPP_PKGS=$(apt-cache depends --recurse g++-${TARGET_GNU_ARCHITECTURE}-linux-gnu -o APT::Cache::ShowOnlyFirstOr=true --no-recommends --no-suggests --no-breaks --no-conflicts --no-replaces --no-enhances | grep -v ' ' | sed -e 's/<//' -e 's/>//');
+        LIBC_DEV_PKGS=$(apt-cache depends --recurse libc6-dev-${TARGET_DEB_ARCHITECTURE}-cross -o APT::Cache::ShowOnlyFirstOr=true --no-recommends --no-suggests --no-breaks --no-conflicts --no-replaces --no-enhances | grep -v ' ' | sed -e 's/<//' -e 's/>//');
       fi
     - mkdir /toolchain
+    - LIST=$(echo "$GPP_PKGS $LIBC_DEV_PKGS" | tr ' ' '\n' | sort -u | tr '\n' ' ')
     - for i in $LIST; do pkg=$(echo $i | sed s/:${SOURCE_DEB_ARCHITECTURE}\$//); dpkg -x /chroot/var/cache/apt/archives/${pkg}_*.deb /toolchain; done
     - cd /toolchain
     - NAME="toolchain_${DEBIAN_VERSION}_${SOURCE_DEB_ARCHITECTURE}_${TARGET_DEB_ARCHITECTURE}"
