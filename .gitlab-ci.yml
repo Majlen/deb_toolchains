@@ -27,7 +27,7 @@ build-toolchains:
     - set -x
     - dpkg --add-architecture ${SOURCE_DEB_ARCHITECTURE}
     - apt-get update
-    - apt-get -y install debootstrap zstd tar dpkg-dev curl
+    - apt-get -y install debootstrap zstd tar dpkg-dev curl gettext-base
     - bkup=$(dpkg-architecture -q DEB_TARGET_ARCH)
     # get GNU architectures for both source and destination
     - dpkg-architecture -A $TARGET_DEB_ARCHITECTURE
@@ -46,8 +46,10 @@ build-toolchains:
     # - LIST=$(echo "$GPP_PKGS $LIBC_DEV_PKGS" | tr ' ' '\n' | sort -u | tr '\n' ' ')
     # - for i in $LIST; do pkg=$(echo $i | sed s/:${SOURCE_DEB_ARCHITECTURE}\$//); dpkg -x /chroot/var/cache/apt/archives/${pkg}_*.deb /toolchain; done
     - for i in $(find /chroot/var/cache/apt/archives -type f); do dpkg -x $i /toolchain; done
+    - export NAME="toolchain_${DEBIAN_VERSION}_${SOURCE_DEB_ARCHITECTURE}_${TARGET_DEB_ARCHITECTURE}"
+    - export VERSION="0.1.0"
+    - envsubst < MODULE.bazel.tmpl > /toolchain/MODULE.bazel
     - cd /toolchain
-    - NAME="toolchain_${DEBIAN_VERSION}_${SOURCE_DEB_ARCHITECTURE}_${TARGET_DEB_ARCHITECTURE}"
     - FILE="/$NAME.tar.zst"
     - tar c * | zstd -9 -o ${FILE}
     - 'curl --header "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file ${FILE}
